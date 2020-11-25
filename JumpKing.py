@@ -150,7 +150,11 @@ class DDQN(object):
 class JKGame:
 	""" Overall class to manga game aspects """
         
-	def __init__(self, max_step=float('inf')):
+	def __init__(self, max_step=float('inf'), cheating_level=0):
+
+		self.cheating_level = cheating_level
+
+		self.cheating_location = {0:(230,298,"left"), 1:(330,245,"right"), 2:(240,245,"right")}
 
 		pygame.init()
 
@@ -185,11 +189,13 @@ class JKGame:
 
 		self.visited = {}
 
+		self.abs_total_height = 43*360-144
+
 		pygame.display.set_caption('Jump King At Home XD')
 
 	def reset(self):
-		self.king.reset()
-		self.levels.reset()
+		self.king.reset(self.cheating_location[self.cheating_level][0],self.cheating_location[self.cheating_level][1],self.cheating_location[self.cheating_level][2])
+		self.levels.reset(self.cheating_level)
 		os.environ["start"] = "1"
 		os.environ["gaming"] = "1"
 		os.environ["pause"] = ""
@@ -212,9 +218,17 @@ class JKGame:
 					and (not self.king.isSplat or self.king.splatCount > self.king.splatDuration)
 		return available
 
+	# potential-based reward shaping
+	def Phi(self,s0,s1):
+		abs_old_y = (s0[0]+1)*360 - s0[2]
+		abs_new_y = (s1[0]+1)*360 - s1[2]
+		diff_height = abs_old_y - abs_new_y
+
+		return diff_height
+
+	
 	def step(self, action):
-		old_level = self.king.levels.current_level
-		old_y = self.king.y
+		s0 = [self.king.levels.current_level, self.king.x, self.king.y, self.king.jumpCount]
 		#old_y = (self.king.levels.max_level - self.king.levels.current_level) * 360 + self.king.y
 		while True:
 			self.clock.tick(self.fps)
@@ -232,22 +246,25 @@ class JKGame:
 
 			if self.move_available():
 				self.step_counter += 1
-				state = [self.king.levels.current_level, self.king.x, self.king.y, self.king.jumpCount]
+				s1 = [self.king.levels.current_level, self.king.x, self.king.y, self.king.jumpCount]
 				##################################################################################################
 				# Define the reward from environment                                                             #
 				##################################################################################################
-				if self.king.levels.current_level > old_level or (self.king.levels.current_level == old_level and self.king.y < old_y):
-					reward = 0
-				else:
-					self.visited[(self.king.levels.current_level, self.king.y)] = self.visited.get((self.king.levels.current_level, self.king.y), 0) + 1
-					if self.visited[(self.king.levels.current_level, self.king.y)] < self.visited[(old_level, old_y)]:
-						self.visited[(self.king.levels.current_level, self.king.y)] = self.visited[(old_level, old_y)] + 1
+				# if self.king.levels.current_level > old_level or (self.king.levels.current_level == old_level and self.king.y < old_y):
+				# 	reward = 0
+				# else:
+				# 	self.visited[(self.king.levels.current_level, self.king.y)] = self.visited.get((self.king.levels.current_level, self.king.y), 0) + 1
+				# 	if self.visited[(self.king.levels.current_level, self.king.y)] < self.visited[(old_level, old_y)]:
+				# 		self.visited[(self.king.levels.current_level, self.king.y)] = self.visited[(old_level, old_y)] + 1
 
-					reward = -self.visited[(self.king.levels.current_level, self.king.y)]
+				# 	reward = -self.visited[(self.king.levels.current_level, self.king.y)]
+
+				reward = -1 - self.Phi(s0,s1)
+
 				####################################################################################################
 
 				done = True if self.step_counter > self.max_step else False
-				return state, reward, done
+				return s1, reward, done
 
 	def running(self):
 		"""
@@ -415,22 +432,24 @@ def train():
 		1: 'left',
 		2: 'right+space',
 		3: 'left+space',
-		# 4: 'idle',
-		# 5: 'space',
+		4: 'idle',
+		5: 'space',
 	}
+	
 	agent = DDQN()
-	env = JKGame(max_step=1000)
+	env = JKGame(max_step=1000, cheating_level=2)
+	print(env.cheating_location)
 	num_episode = 100000
 
 	for i in range(num_episode):
 		done, state = env.reset()
-
+		
 		running_reward = 0
 		while not done:
 			action = agent.select_action(state)
 			#print(action_dict[action])
 			next_state, reward, done = env.step(action)
-
+			print(reward)
 			running_reward += reward
 			sign = 1 if done else 0
 			agent.train(state, action, reward, next_state, sign)
@@ -439,6 +458,6 @@ def train():
 
 			
 if __name__ == "__main__":
-	#Game = JKGame()
-	#Game.running()
+	# Game = JKGame()
+	# Game.running()
 	train()

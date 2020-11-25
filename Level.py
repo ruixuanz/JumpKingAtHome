@@ -444,9 +444,9 @@ class Levels:
 
 			print("LOAD LEVELS ERROR: ", e)
 
-	def reset(self):
+	def reset(self, cheating_level):
 
-		self.current_level = 0
+		self.current_level = cheating_level
 
 		self.wind.__init__(self.screen)
 

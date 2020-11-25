@@ -44,7 +44,7 @@ def get_action_dict(agentCommand):
 	# 	keys[pygame.K_SPACE] = 0
 	# 	keys[pygame.K_RIGHT] = 0
 	# 	keys[pygame.K_LEFT] = 0
-	#
+	
 	# elif agentCommand == 5:
 	# 	keys[pygame.K_SPACE] = 1
 	# 	keys[pygame.K_RIGHT] = 0
@@ -1146,7 +1146,7 @@ class King():
 		os.environ["FALLS"]  = str(self.falls)
 
 
-	def reset(self):
+	def reset(self,x,y,direction):
 
 		self.isWalk = False
 
@@ -1203,7 +1203,7 @@ class King():
 
 		# Animation
 
-		self.x, self.y = 230, 298
+		self.x, self.y = x, y
 
 		self.width, self.height = 32, 32
 
@@ -1211,7 +1211,7 @@ class King():
 
 		self.rect_width, self.rect_height = self.width - 12, self.height - 8
 
-		self.direction = "right"
+		self.direction = direction
 
 		self.danceCount = 0
 
